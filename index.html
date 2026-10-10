@@ -1,0 +1,833 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<meta name="color-scheme" content="light"/>
+<title>Meridian — The Stacks</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Karla:wght@400;500;600;700&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --paper:#F4EEE1; --paper2:#EFE7D6; --card:#FCF8EE;
+  --ink:#26211A; --ink2:#6E6455; --line:#DCD1BB; --line2:#C4B69A;
+  --ox:#93382A; --gr:#3F6B4F; --wood:#A5825D; --wood-d:#7C5E40;
+  --serif:'Instrument Serif',Georgia,serif;
+  --sans:'Karla',sans-serif;
+  --type:'Courier Prime','Courier New',monospace;
+}
+body{background:var(--paper);color:var(--ink);font:400 14.5px/1.5 var(--sans);min-height:100vh}
+body.lock{overflow:hidden}
+::selection{background:var(--ink);color:var(--paper)}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+input,select{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--ox);outline-offset:2px;border-radius:3px}
+svg{display:block}
+.wrap{max-width:1180px;margin:0 auto;padding:0 28px}
+.mono{font-family:var(--type)}
+
+/* ============ masthead ============ */
+.mast{padding-top:36px}
+.mast-row{display:flex;justify-content:space-between;align-items:flex-end;gap:26px;flex-wrap:wrap}
+.brand{display:flex;gap:15px;align-items:center}
+.seal{width:47px;height:47px;border:2.5px solid var(--ox);border-radius:50%;display:grid;place-items:center;color:var(--ox);font:italic 400 24px/1 var(--serif);transform:rotate(-8deg);transition:transform .35s;flex:none}
+.seal:hover{transform:rotate(5deg)}
+.brand-name{font:italic 400 clamp(34px,4.6vw,44px)/1 var(--serif);letter-spacing:-.01em}
+.brand-sub{font:700 9px var(--type);letter-spacing:.24em;color:var(--ink2);margin-top:7px}
+.mast-right{display:flex;flex-direction:column;align-items:flex-end;gap:11px}
+.stats{font:700 10px var(--type);letter-spacing:.12em;color:var(--ink2)}
+.stats b{color:var(--ink)} .stats .od{color:var(--ox)}
+.search{display:flex;align-items:center;gap:9px;border-bottom:1px solid var(--line2);padding:6px 2px;width:min(310px,72vw);color:var(--ink2)}
+.search input{border:0;background:none;outline:none;flex:1;min-width:0;font:400 14.5px var(--sans)}
+.search input::placeholder{color:var(--ink2);opacity:.75}
+.search kbd{font:700 9px var(--type);border:1px solid var(--line2);border-radius:3px;padding:2px 5px;color:var(--ink2)}
+.tabbar{display:flex;justify-content:space-between;align-items:center;gap:16px;border-bottom:1px solid var(--line2);margin-top:24px;flex-wrap:wrap}
+.tabs{display:flex;gap:28px}
+.tab{font:700 11px var(--sans);letter-spacing:.18em;color:var(--ink2);padding:14px 2px 12px;border-bottom:2px solid transparent;margin-bottom:-1px;transition:color .15s}
+.tab:hover{color:var(--ink)}
+.tab.on{color:var(--ink);border-color:var(--ink)}
+.tab sup{font:700 9px var(--type);margin-left:5px;color:var(--ink2)}
+
+/* ============ buttons ============ */
+.btn{display:inline-flex;align-items:center;gap:7px;font:700 10px var(--sans);letter-spacing:.14em;text-transform:uppercase;padding:10px 14px;border:1px solid var(--ink);border-radius:3px;transition:background .15s,color .15s,border-color .15s,transform .1s;white-space:nowrap}
+.btn:active{transform:translateY(1px)}
+.btn.pri{background:var(--ink);color:var(--paper)}
+.btn.pri:hover{background:var(--ox);border-color:var(--ox)}
+.btn.gho{border-color:var(--line2)}
+.btn.gho:hover{background:var(--ink);border-color:var(--ink);color:var(--paper)}
+.btn.ox{border-color:var(--ox);color:var(--ox)}
+.btn.ox:hover,.btn.ox.armed{background:var(--ox);border-color:var(--ox);color:var(--paper)}
+.btn.sm{padding:6px 10px;font-size:9px}
+.btn.wide{width:100%;justify-content:center}
+.btn[disabled]{opacity:.4;cursor:not-allowed}
+.linkbtn{font:700 9px var(--type);letter-spacing:.16em;color:var(--ink2);border-bottom:1px dotted var(--line2);padding-bottom:1px}
+.linkbtn:hover,.linkbtn.armed{color:var(--ox);border-color:var(--ox)}
+
+/* ============ the stacks ============ */
+.shelf{margin-top:34px;transition:opacity .3s}
+.shelf.mute{opacity:.28}
+.shelf-head{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+.plaque{font:700 9.5px var(--type);letter-spacing:.2em;background:var(--ink);color:var(--paper);padding:6px 11px;border-radius:3px}
+.shelf-count{font:700 9.5px var(--type);letter-spacing:.12em;color:var(--ink2)}
+.shelf-scroll{overflow-x:auto;scrollbar-width:none}
+.shelf-scroll::-webkit-scrollbar{display:none}
+.shelf-scroll.fade{-webkit-mask-image:linear-gradient(90deg,#000 0,#000 calc(100% - 40px),transparent);mask-image:linear-gradient(90deg,#000 0,#000 calc(100% - 40px),transparent)}
+.shelf-row{display:flex;align-items:flex-end;gap:4px;padding:0 6px;min-height:184px;width:max-content;min-width:100%}
+.plank{height:9px;background:var(--wood);border-radius:2px;border-bottom:5px solid var(--wood-d);box-shadow:0 12px 20px -12px rgba(45,32,18,.55)}
+
+/* spines */
+.spine{--tf:translateY(0);position:relative;flex:none;height:var(--h);width:var(--w);background:var(--c);border-radius:2px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;padding:18px 0 22px;
+  box-shadow:inset 2px 0 0 rgba(255,255,255,.16),inset -3px 0 0 rgba(0,0,0,.16),0 6px 7px -4px rgba(45,32,18,.5);
+  transition:transform .18s,opacity .25s,filter .25s,margin-left .18s}
+.spine:hover{transform:translateY(-10px)}
+.spine .band{position:absolute;left:3px;right:3px;height:5px;background:var(--tx);opacity:.85;border-radius:1px}
+.spine .band.t{top:7px}.spine .band.b{bottom:9px;height:10px}
+.spine-t{writing-mode:vertical-rl;text-orientation:mixed;font:700 9px/1.1 var(--sans);letter-spacing:.09em;text-transform:uppercase;color:var(--tx);max-height:calc(100% - 46px);overflow:hidden;text-align:center;
+  -webkit-mask-image:linear-gradient(180deg,#000 84%,transparent);mask-image:linear-gradient(180deg,#000 84%,transparent)}
+.spine.ghost{background:transparent;border:2px dashed var(--c);box-shadow:none;opacity:.75}
+.spine.ghost .band{display:none}
+.spine.ghost .spine-t{color:var(--ink2)}
+.spine.pop{animation:pop .55s cubic-bezier(.2,1.1,.35,1) both}
+.searching .spine.dim{opacity:.14;filter:saturate(.15)}
+.searching .spine.hit{transform:translateY(-7px)}
+.spine:hover + .spine,.spine:hover + .slip,.slip:hover + .spine,.slip:hover + .slip{margin-left:8px}
+
+/* due slips standing where a copy was */
+.slip{--tf:translateY(0);position:relative;flex:none;width:40px;height:134px;background:var(--card);border:1px solid var(--line2);border-radius:2px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;margin-left:2px;
+  box-shadow:0 6px 7px -4px rgba(45,32,18,.45);transition:transform .18s,opacity .25s,margin-left .18s}
+.slip:hover{transform:translateY(-7px)}
+.slip .due-l{font:700 7px var(--type);letter-spacing:.22em;color:var(--ink2)}
+.slip .due-d{font:700 11.5px var(--type);letter-spacing:.02em}
+.slip .who{font:700 8px var(--type);color:var(--ink2);border-top:1px solid var(--line);padding-top:5px;width:66%;text-align:center;letter-spacing:.08em}
+.slip.od{--tf:rotate(-4deg);transform:rotate(-4deg);border-color:var(--ox)}
+.slip.od:hover{transform:rotate(-4deg) translateY(-7px)}
+.slip.od .due-d{color:var(--ox)}
+.slip-stamp{position:absolute;left:50%;top:47%;transform:translate(-50%,-50%) rotate(-16deg);font:700 7.5px var(--type);letter-spacing:.08em;color:var(--ox);border:2px solid var(--ox);border-radius:2px;padding:2px 5px;background:rgba(252,248,238,.65);white-space:nowrap}
+.slip.pop{animation:pop .55s cubic-bezier(.2,1.1,.35,1) both}
+.slip.pop .slip-stamp{animation:stampIn .45s .2s cubic-bezier(.2,1.25,.4,1) both}
+@keyframes pop{0%{transform:translateY(-20px) scale(.7);opacity:0}60%{transform:translateY(2px) scale(1.05);opacity:1}100%{transform:var(--tf);opacity:1}}
+@keyframes stampIn{0%{transform:translate(-50%,-50%) rotate(-16deg) scale(2.5);opacity:0}55%{transform:translate(-50%,-50%) rotate(-16deg) scale(.9);opacity:1}100%{transform:translate(-50%,-50%) rotate(-16deg) scale(1);opacity:1}}
+.searching .slip.dim{opacity:.25}
+.no-hits{display:none;margin-top:26px;padding:18px 20px;border:1px dashed var(--line2);border-radius:4px;font:italic 400 17px var(--serif);color:var(--ink2)}
+.searching .no-hits.on{display:block}
+
+/* desk ledger */
+.ledger{margin-top:48px;border:1px solid var(--line2);border-radius:4px;background:var(--paper2);padding:16px 20px 12px}
+.ledger-t{font:700 9.5px var(--type);letter-spacing:.2em;color:var(--ink2);margin-bottom:4px}
+.lg-row{display:flex;gap:12px;padding:9px 0;border-top:1px dashed var(--line);align-items:baseline}
+.lg-row:first-of-type{border-top:0}
+.lg-d{font:700 9px var(--type);letter-spacing:.08em;color:var(--ink2);width:52px;flex:none}
+.lg-tx{font-size:13.5px;color:var(--ink2)}
+.lg-tx b{color:var(--ink);font-weight:600}
+.lg-tx .fine{color:var(--ox);font:700 10px var(--type);letter-spacing:.06em}
+
+/* ============ borrowers ============ */
+.b-head{display:flex;justify-content:space-between;align-items:center;margin:34px 0 16px;gap:14px;flex-wrap:wrap}
+.b-title{font:italic 400 26px var(--serif)}
+.b-sub{font:700 9px var(--type);letter-spacing:.18em;color:var(--ink2);margin-top:4px}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(268px,1fr));gap:15px;padding-bottom:8px}
+.icard{position:relative;background:var(--card);border:1px solid var(--line2);border-radius:4px;padding:22px 18px 16px;text-align:left;
+  box-shadow:2px 3px 0 rgba(45,32,18,.08);transition:transform .18s,box-shadow .18s;min-height:150px;display:flex;flex-direction:column}
+.icard::before{content:"";position:absolute;left:0;right:0;top:9px;height:2px;background:rgba(178,84,72,.45)}
+.icard::after{content:"";position:absolute;left:0;right:0;top:15px;height:1px;background:rgba(80,100,150,.3)}
+.icard:hover{transform:translateY(-3px);box-shadow:3px 6px 0 rgba(45,32,18,.1)}
+.icard.pop{animation:pop .5s cubic-bezier(.2,1.1,.35,1) both}
+.ic-top{font:700 8px var(--type);letter-spacing:.2em;color:var(--ink2)}
+.ic-name{font:400 23px/1.1 var(--serif);margin:9px 0 3px}
+.ic-no{font:700 9px var(--type);letter-spacing:.14em;color:var(--ink2)}
+.ic-loans{margin-top:auto;padding-top:12px;font:400 11.5px var(--type);color:var(--ink2)}
+.ic-loans div{padding:2.5px 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ic-loans .odl{color:var(--ox);font-weight:700}
+.stamp-mini{position:absolute;right:13px;top:34px;font:700 8.5px var(--type);letter-spacing:.12em;color:var(--ox);border:2px solid var(--ox);border-radius:3px;padding:3px 6px;transform:rotate(-9deg)}
+.stamp-mini.gr{color:var(--gr);border-color:var(--gr);transform:rotate(5deg)}
+.icard-add{border:1.5px dashed var(--line2);background:none;box-shadow:none;align-items:center;justify-content:center;gap:9px;color:var(--ink2);min-height:150px}
+.icard-add:hover{border-color:var(--ink);color:var(--ink);transform:none}
+
+/* ============ drawer ============ */
+.scrim{position:fixed;inset:0;background:rgba(40,30,20,.32);opacity:0;pointer-events:none;transition:opacity .3s;z-index:50}
+.scrim.show{opacity:1;pointer-events:auto}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:min(424px,100vw);background:var(--paper);border-left:1px solid var(--line2);z-index:60;transform:translateX(105%);transition:transform .48s cubic-bezier(.3,1,.3,1);box-shadow:-26px 0 52px rgba(45,32,18,.18)}
+.drawer.open{transform:none}
+.d-inner{height:100%;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--line2) transparent}
+.d-head{position:sticky;top:0;z-index:5;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 18px;background:var(--paper);border-bottom:1px solid var(--line)}
+.d-k{font:700 9px var(--type);letter-spacing:.22em;color:var(--ink2)}
+.icon-btn{width:32px;height:32px;display:grid;place-items:center;border-radius:4px;color:var(--ink2)}
+.icon-btn:hover{background:var(--paper2);color:var(--ink)}
+.d-body{padding:20px 20px 44px}
+.jacket{height:118px;border-radius:4px;display:flex;flex-direction:column;justify-content:center;padding:0 20px;margin-bottom:18px;box-shadow:inset -5px 0 0 rgba(0,0,0,.15),inset 0 -7px 0 rgba(0,0,0,.1)}
+.jt{font:italic 400 25px/1.1 var(--serif)}
+.ja{font:700 9.5px var(--sans);letter-spacing:.18em;text-transform:uppercase;opacity:.8;margin-top:7px}
+.mrow{display:flex;justify-content:space-between;gap:14px;padding:8px 0;border-top:1px solid var(--line);font-size:13.5px}
+.mrow dt{font:700 8.5px var(--type);letter-spacing:.16em;color:var(--ink2);padding-top:3px}
+.mrow dd{font-weight:600;text-align:right}
+.mrow dd.bad{color:var(--ox)} .mrow dd.good{color:var(--gr)}
+.sect{margin-top:24px}
+.sect-t{display:flex;justify-content:space-between;align-items:center;font:700 9px var(--type);letter-spacing:.2em;color:var(--ink2);padding-bottom:8px;border-bottom:1px solid var(--line2)}
+.holder{display:flex;align-items:center;gap:11px;padding:11px 0;border-bottom:1px solid var(--line)}
+.holder-main{flex:1;min-width:0}
+.holder-t{display:block;font-weight:600;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.holder-s{display:block;font:400 9.5px var(--type);letter-spacing:.06em;color:var(--ink2);margin-top:2px}
+.holder-s .fine{color:var(--ox);font-weight:700}
+.holder-act{display:flex;gap:6px;flex:none}
+.init{display:grid;place-items:center;border-radius:3px;font:700 10px var(--type);color:var(--card);flex:none;letter-spacing:.03em}
+.iblock{display:grid;place-items:center;border-radius:3px;font:700 10px var(--type);color:var(--card);flex:none}
+.note{padding:14px 2px;font:400 12.5px var(--sans);color:var(--ink2);font-style:italic}
+.mpick{display:flex;align-items:center;gap:11px;width:100%;padding:9px 10px;border:1px solid transparent;border-radius:4px;text-align:left;transition:.15s}
+.mpick:hover{background:var(--paper2)}
+.mpick.sel{border-color:var(--ink);background:var(--paper2)}
+.mpick[disabled]{opacity:.45;cursor:not-allowed}
+.mpick-main{flex:1;min-width:0}
+.mpick-t{display:block;font-weight:600;font-size:13.5px}
+.mpick-s{display:block;font:400 9.5px var(--type);letter-spacing:.06em;color:var(--ink2);margin-top:1px}
+.mpick .cnt{font:700 9.5px var(--type);color:var(--ink2);flex:none}
+.mpick .tick{color:var(--gr);display:none}
+.mpick.sel .tick{display:block}
+.due-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:14px 0 4px}
+.due-row .lab{font:700 8.5px var(--type);letter-spacing:.18em;color:var(--ink2);margin-right:2px}
+.dur{padding:7px 12px;border:1px solid var(--line2);border-radius:3px;font:700 10px var(--type);letter-spacing:.06em;color:var(--ink2);transition:.15s}
+.dur:hover{color:var(--ink);border-color:var(--ink)}
+.dur.on{background:var(--ink);border-color:var(--ink);color:var(--paper)}
+.due-preview{margin-top:12px;font:400 13px var(--sans);color:var(--ink2)}
+.due-preview b{color:var(--ink)}
+.d-actions{display:flex;gap:9px;margin-top:24px}
+.d-actions .btn{flex:1;justify-content:center}
+.hist{font:400 11px var(--type);color:var(--ink2)}
+.hist div{padding:6px 0;border-bottom:1px dashed var(--line);display:flex;justify-content:space-between;gap:10px}
+.hist div:last-child{border-bottom:0}
+.confirm-strip{margin-top:14px;border:1.5px solid var(--ink);border-radius:4px;padding:13px 14px;background:var(--paper2)}
+.cs-row{display:flex;align-items:center;gap:9px;font:600 13.5px var(--sans)}
+.cs-row .mono{font-size:10px;color:var(--ink2)}
+.crow{display:flex;align-items:center;gap:11px;width:100%;padding:8px 9px;border-radius:4px;text-align:left;transition:background .13s}
+.crow:hover{background:var(--paper2)}
+.crow.sel{background:var(--paper2);box-shadow:inset 0 0 0 1.5px var(--ink)}
+.crow .mini-spine{width:11px;height:30px;border-radius:2px;flex:none;box-shadow:inset -2px 0 0 rgba(0,0,0,.2)}
+.crow-main{flex:1;min-width:0}
+.crow-t{display:block;font-weight:600;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.crow-s{display:block;font:400 9.5px var(--type);color:var(--ink2);margin-top:1px}
+.crow .cnt{font:700 9.5px var(--type);color:var(--ink2);flex:none}
+.pick-list{max-height:224px;overflow-y:auto;margin-top:8px;scrollbar-width:thin}
+
+/* forms */
+.form{margin-top:18px}
+.field{margin-bottom:16px}
+.field label{display:block;font:700 8.5px var(--type);letter-spacing:.18em;color:var(--ink2);margin-bottom:6px}
+.field input,.field select{width:100%;background:transparent;border:0;border-bottom:1px solid var(--line2);border-radius:0;padding:7px 2px;outline:none;font:400 15px var(--sans)}
+.field input:focus,.field select:focus{border-color:var(--ink)}
+.field select{appearance:none;-webkit-appearance:none;cursor:pointer;background:transparent url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%236E6455' stroke-width='1.6'/%3E%3C/svg%3E") no-repeat right 4px center}
+.f2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.f3{display:grid;grid-template-columns:2fr 1fr 1fr;gap:14px}
+.form-note{font:700 9px var(--type);letter-spacing:.18em;color:var(--ink2);margin:-4px 0 18px}
+
+/* toasts & footer */
+.toasts{position:fixed;left:20px;bottom:20px;z-index:100;display:flex;flex-direction:column;gap:9px;max-width:min(390px,calc(100vw - 36px))}
+.toast{display:flex;gap:12px;align-items:flex-start;background:var(--card);border:1px solid var(--line2);border-left:4px solid var(--ink);padding:12px 14px;box-shadow:3px 4px 0 rgba(45,32,18,.13);animation:tin .35s cubic-bezier(.2,1.1,.3,1) both}
+.toast.gr{border-left-color:var(--gr)} .toast.ox{border-left-color:var(--ox)}
+.toast b{display:block;font:700 13.5px var(--sans)}
+.toast span{display:block;font-size:12.5px;color:var(--ink2);margin-top:2px}
+.toast .undo{font:700 9px var(--type);letter-spacing:.14em;color:var(--ox);border:1px solid var(--ox);border-radius:3px;padding:5px 8px;margin-left:auto;flex:none;align-self:center}
+.toast .undo:hover{background:var(--ox);color:var(--card)}
+.toast.bye{opacity:0;transform:translateY(6px);transition:.3s}
+@keyframes tin{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+.foot{margin-top:60px;border-top:1px solid var(--line2);padding:16px 0 44px;display:flex;justify-content:space-between;align-items:baseline;gap:16px;flex-wrap:wrap;font:700 8.5px var(--type);letter-spacing:.18em;color:var(--ink2)}
+
+@media (max-width:720px){
+  .wrap{padding:0 16px}
+  .mast{padding-top:26px}
+  .mast-right{align-items:flex-start}
+  .search kbd{display:none}
+  .f3,.f2{grid-template-columns:1fr}
+  .drawer{width:100vw;border-left:0}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<header class="mast wrap">
+  <div class="mast-row">
+    <div class="brand">
+      <span class="seal">M</span>
+      <div>
+        <div class="brand-name">Meridian</div>
+        <div class="brand-sub">LENDING LIBRARY · READING ROOM · EST. 1962</div>
+      </div>
+    </div>
+    <div class="mast-right">
+      <div class="stats" id="stats"></div>
+      <label class="search" id="searchBox">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.4-4.4"/></svg>
+        <input id="q" type="text" placeholder="Dim the stacks… search titles & authors" autocomplete="off">
+        <kbd>/</kbd>
+      </label>
+    </div>
+  </div>
+  <div class="tabbar">
+    <nav class="tabs" id="tabs"></nav>
+    <span id="tabAction"></span>
+  </div>
+</header>
+
+<main id="view" class="wrap"></main>
+
+<footer class="foot wrap">
+  <span>MERIDIAN LENDING LIBRARY · ALL RECORDS KEPT IN THIS BROWSER</span>
+  <button class="linkbtn" id="resetBtn" data-act="reset" data-arm><span class="arm-label">RESET THE SHELVES</span></button>
+</footer>
+
+<div class="scrim" id="scrim"></div>
+<aside class="drawer" id="drawer" aria-label="Record"><div class="d-inner" id="dbody"></div></aside>
+<div class="toasts" id="toasts"></div>
+
+<script>
+'use strict';
+/* ============ helpers ============ */
+const $=s=>document.querySelector(s), DAY=864e5, LOAN_DAYS=14, FINE=0.25, MAXBOOKS=5, LS='meridian.stacks.v1';
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const pad=(n,l=5)=>String(n).padStart(l,'0');
+const sod=t=>{const d=new Date(t);d.setHours(0,0,0,0);return+d};
+const dayDiff=(a,b)=>Math.round((sod(a)-sod(b))/DAY);
+const daysOver=due=>Math.max(0,dayDiff(Date.now(),due));
+const money=v=>'$'+(+v).toFixed(2);
+const fmtDate=t=>new Date(t).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+const fmtDay=t=>new Date(t).toLocaleDateString('en-US',{month:'short',day:'numeric'}).toUpperCase();
+const hash=s=>{let h=7;for(const c of String(s))h=(h*31+c.charCodeAt(0))>>>0;return h};
+const initials=n=>n.split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
+function lum(hex){const n=parseInt(hex.slice(1),16),r=n>>16&255,g=n>>8&255,b=n&255;return (r*.299+g*.587+b*.114)/255}
+
+const I={
+  x:'<path d="M18 6 6 18M6 6l12 12"/>',
+  plus:'<path d="M12 5v14M5 12h14"/>',
+  check:'<path d="m5 12.5 4.5 4.5L19 7.5"/>',
+  pen:'<path d="M16.9 3.9a2.3 2.3 0 0 1 3.2 3.2L7.5 19.7 3 21l1.3-4.5Z"/>',
+  trash:'<path d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13M10 11v6M14 11v6"/>'
+};
+const ic=(n,s=15)=>`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${I[n]}</svg>`;
+
+/* ============ data ============ */
+function seed(){
+  const now=Date.now(), d=n=>now+n*DAY;
+  const B=(id,acc,title,author,subject,publisher,year,copies,shelf,added)=>({id,acc,title,author,subject,publisher,year,copies,shelf,added});
+  const books=[
+    B('b1','00031','The Name of the Rose','Umberto Eco','Fiction','Harcourt Brace Jovanovich',1983,2,'F-ECO',d(-412)),
+    B('b2','00032','One Hundred Years of Solitude','Gabriel García Márquez','Fiction','Harper & Row',1970,3,'F-GAR',d(-405)),
+    B('b3','00033','The Structure of Scientific Revolutions','Thomas S. Kuhn','Science','University of Chicago Press',1962,3,'501-KUH',d(-398)),
+    B('b4','00034','A Pattern Language','Christopher Alexander','Architecture','Oxford University Press',1977,1,'720.1-ALE',d(-390)),
+    B('b5','00035','The Elements of Style','William Strunk & E. B. White','Reference','Macmillan',1979,4,'808-STR',d(-383)),
+    B('b6','00036','Meditations','Marcus Aurelius','Philosophy','Penguin Classics',2006,2,'188-AUR',d(-370)),
+    B('b7','00037','The Master and Margarita','Mikhail Bulgakov','Fiction','Grove Press',1967,1,'F-BUL',d(-356)),
+    B('b8','00038','Ways of Seeing','John Berger','Art','Penguin',1972,2,'701-BER',d(-340)),
+    B('b9','00039','The Emperor of All Maladies','Siddhartha Mukherjee','Science','Scribner',2010,2,'616.99-MUK',d(-322)),
+    B('b10','00040','Invisible Cities','Italo Calvino','Fiction','Harcourt',1974,1,'F-CAL',d(-300)),
+    B('b11','00041','The Design of Everyday Things','Don Norman','Design','Basic Books',1988,2,'155.9-NOR',d(-270)),
+    B('b12','00042','Kitchen Confidential','Anthony Bourdain','Memoir','Bloomsbury',2000,2,'641.5-BOU',d(-240)),
+    B('b13','00043','The Guns of August','Barbara W. Tuchman','History','Macmillan',1962,2,'940.4-TUC',d(-210)),
+    B('b14','00044','Norwegian Wood','Haruki Murakami','Fiction','Vintage',2000,2,'F-MUR',d(-180)),
+    B('b15','00045','Zen and the Art of Motorcycle Maintenance','Robert M. Pirsig','Philosophy','William Morrow',1974,1,'170-PIR',d(-150)),
+    B('b16','00046','The Right Stuff','Tom Wolfe','History','Farrar, Straus & Giroux',1979,2,'629.45-WOL',d(-120)),
+    B('b17','00047','Gorillas in the Mist','Dian Fossey','Science','Houghton Mifflin',1983,1,'599.88-FOS',d(-60)),
+    B('b18','00048','The Peregrine','J. A. Baker','Nature','New York Review Books',2005,1,'598.9-BAK',d(-30))
+  ];
+  const M=(id,no,name,email,joined)=>({id,no,name,email,joined});
+  const members=[
+    M('m1','M-0117','Anna Wren','a.wren@meridian.read',d(-520)),
+    M('m2','M-0133','Tomás Rivera','t.rivera@meridian.read',d(-410)),
+    M('m3','M-0140','June Okafor','j.okafor@meridian.read',d(-300)),
+    M('m4','M-0152','Marcus Feld','m.feld@meridian.read',d(-190)),
+    M('m5','M-0158','Priya Raghavan','p.raghavan@meridian.read',d(-120)),
+    M('m6','M-0161','Elena Sokolova','e.sokolova@meridian.read',d(-40))
+  ];
+  const L=(id,bookId,memberId,out,due,returned)=>({id,bookId,memberId,out,due,returned,renewals:0});
+  const loans=[
+    L('l1','b1','m1',d(-18),d(-4),null),
+    L('l2','b10','m2',d(-6),d(8),null),
+    L('l3','b3','m3',d(-10),d(4),null),
+    L('l4','b8','m4',d(-20),d(-6),null),
+    L('l5','b11','m5',d(-13),d(1),null),
+    L('l6','b14','m6',d(-9),d(5),null),
+    L('h1','b5','m2',d(-30),d(-16),d(-14)),
+    L('h2','b6','m1',d(-26),d(-12),d(-13)),
+    L('h3','b13','m3',d(-24),d(-10),d(-11)),
+    L('h4','b2','m5',d(-21),d(-7),d(-8)),
+    L('h5','b12','m4',d(-19),d(-5),d(-6)),
+    L('h6','b16','m6',d(-17),d(-3),d(-2)),
+    L('h7','b9','m1',d(-15),d(-1),d(-1)),
+    L('h8','b18','m2',d(-12),d(2),d(1)),
+    L('h9','b4','m3',d(-40),d(-26),d(-27)),
+    L('h10','b7','m5',d(-36),d(-22),d(-20)),
+    L('h11','b15','m6',d(-33),d(-19),d(-17)),
+    L('h12','b17','m4',d(-28),d(-14),d(-12))
+  ];
+  return{books,members,loans,seq:{book:50,member:162}};
+}
+function load(){try{const s=JSON.parse(localStorage.getItem(LS));if(s&&s.books&&s.seq)return s}catch(e){}return null}
+let state=load()||seed();
+const save=()=>{try{localStorage.setItem(LS,JSON.stringify(state))}catch(e){}};
+
+const ui={tab:'stacks',q:''};
+let dctx=null, lend={book:null,mid:null,days:14}, charge={mid:null,q:'',bid:null,days:14};
+let flash={loan:null,book:null,member:null};
+
+const book=id=>state.books.find(b=>b.id===id);
+const member=id=>state.members.find(m=>m.id===id);
+const activeLoans=bid=>state.loans.filter(l=>l.bookId===bid&&!l.returned);
+const activeOf=mid=>state.loans.filter(l=>l.memberId===mid&&!l.returned);
+const copiesIn=b=>b.copies-activeLoans(b.id).length;
+const activeAll=()=>state.loans.filter(l=>!l.returned);
+const overdueAll=()=>activeAll().filter(l=>daysOver(l.due)>0);
+const totalCopies=()=>state.books.reduce((a,b)=>a+b.copies,0);
+const SUBJ_ORDER=['Fiction','Science','History','Philosophy','Art','Design','Reference','Memoir','Architecture','Poetry','Nature'];
+function subjectsOrdered(){
+  const set=[...new Set(state.books.map(b=>b.subject))];
+  return set.sort((a,b)=>{
+    const ia=SUBJ_ORDER.indexOf(a),ib=SUBJ_ORDER.indexOf(b);
+    return (ia<0?99:ia)-(ib<0?99:ib)||a.localeCompare(b);
+  });
+}
+
+/* spine & card visuals */
+const PAL=['#A8433A','#C08A2E','#6C7F52','#3E5C77','#7C3B52','#CBB894','#48746B','#A65E33','#5A5570','#8A6B4A','#31473A','#B23A48'];
+const AVPAL=['#A8433A','#48746B','#C08A2E','#3E5C77','#7C3B52','#6C7F52','#5A5570'];
+const spineColor=b=>PAL[hash(b.id+b.title)%PAL.length];
+const spineFg=hex=>lum(hex)>.55?'#2A241B':'#F6EFDF';
+function spineDims(b){const h=hash(b.id+b.title);return{h:126+((h>>3)%46),w:24+((h>>7)%10)}}
+function initBlock(m,s=26){
+  const c=AVPAL[hash(m.name)%AVPAL.length];
+  return `<span class="iblock" style="width:${s}px;height:${s}px;background:${c};font-size:${Math.round(s*.4)}px">${esc(initials(m.name))}</span>`;
+}
+function miniSpine(b){
+  const c=spineColor(b);
+  return `<span class="mini-spine" style="background:${c}"></span>`;
+}
+
+/* ============ toasts ============ */
+function toast(o){
+  const el=document.createElement('div');el.className='toast '+(o.type||'');
+  el.innerHTML=`<div style="min-width:0"><b>${esc(o.title)}</b>${o.desc?`<span>${esc(o.desc)}</span>`:''}</div>${o.undo?`<button class="undo">UNDO</button>`:''}`;
+  const kill=()=>{el.classList.add('bye');setTimeout(()=>el.remove(),320)};
+  if(o.undo)el.querySelector('.undo').addEventListener('click',()=>{o.undo();kill()});
+  $('#toasts').appendChild(el);setTimeout(kill,o.dur||4600);
+}
+
+/* ============ masthead ============ */
+function renderStats(){
+  const out=activeAll().length,od=overdueAll().length;
+  $('#stats').innerHTML=`<b>${totalCopies()}</b> COPIES · <b>${out}</b> OUT · <span class="od">${od} OVERDUE</span> · ${state.members.length} READERS`;
+}
+function renderTabs(){
+  $('#tabs').innerHTML=
+    `<button class="tab${ui.tab==='stacks'?' on':''}" data-act="tab" data-sub="stacks">THE STACKS<sup>${state.books.length}</sup></button>`+
+    `<button class="tab${ui.tab==='borrowers'?' on':''}" data-act="tab" data-sub="borrowers">BORROWERS<sup>${state.members.length}</sup></button>`;
+  $('#tabAction').innerHTML=ui.tab==='stacks'
+    ?`<button class="btn gho sm" data-act="add-book">${ic('plus',12)}ACCESSION TITLE</button>`
+    :`<button class="btn gho sm" data-act="add-member">${ic('plus',12)}REGISTER READER</button>`;
+}
+
+/* ============ the stacks ============ */
+function matchBook(b,q){
+  q=q.trim().toLowerCase();
+  return !q||(b.title+' '+b.author+' '+b.acc+' '+b.shelf).toLowerCase().includes(q);
+}
+function renderStacks(v){
+  const q=ui.q, searching=!!q.trim();
+  v.classList.toggle('searching',searching);
+  const subs=subjectsOrdered();
+  let anyHit=false;
+  const shelves=subs.map(sub=>{
+    const bs=state.books.filter(b=>b.subject===sub).sort((a,b2)=>a.acc.localeCompare(b2.acc));
+    const hits=bs.filter(b=>matchBook(b,q)).length;
+    if(hits)anyHit=true;
+    const inC=bs.reduce((a,b)=>a+copiesIn(b),0), totC=bs.reduce((a,b)=>a+b.copies,0);
+    const items=bs.map(b=>spineHTML(b,searching)).join('')+
+      bs.flatMap(b=>activeLoans(b.id).sort((a,b2)=>a.due-b2.due).map(l=>slipHTML(l,searching))).join('');
+    return `<section class="shelf${searching&&!hits?' mute':''}">
+      <div class="shelf-head"><span class="plaque">${esc(sub).toUpperCase()}</span><span class="shelf-count">${inC} OF ${totC} IN · ${bs.length} TITLES</span></div>
+      <div class="shelf-scroll"><div class="shelf-row">${items}</div></div>
+      <div class="plank"></div>
+    </section>`;
+  }).join('');
+  v.innerHTML=shelves+`<div class="no-hits${anyHit?'':' on'}">Nothing on the shelves matches “${esc(q)}” — try another word, or accession it yourself.</div>`+ledgerHTML();
+  v.querySelectorAll('.shelf-scroll').forEach(el=>el.classList.toggle('fade',el.scrollWidth>el.clientWidth+8));
+  /* stagger settling animation on first paint */
+  if(!renderStacks.done){v.querySelectorAll('.spine,.slip').forEach((el,i)=>{el.style.animationDelay=Math.min(i*14,500)+'ms';el.classList.add('settle')});renderStacks.done=true}
+  if(flash.loan){const el=v.querySelector(`[data-slip="${flash.loan}"]`);el&&el.scrollIntoView({block:'nearest',behavior:'smooth'});flash.loan=null}
+  else if(flash.book){const el=v.querySelector(`[data-spine="${flash.book}"]`);el&&el.scrollIntoView({block:'nearest',behavior:'smooth'});flash.book=null}
+}
+function spineHTML(b,searching){
+  const {h,w}=spineDims(b), c=spineColor(b), ghost=copiesIn(b)===0;
+  const hit=searching&&matchBook(b,ui.q);
+  return `<button class="spine${ghost?' ghost':''}${flash.book===b.id?' pop':''}${searching?(hit?' hit':' dim'):''}"
+    data-book="${b.id}" data-spine="${b.id}" title="${esc(b.title)} — ${esc(b.author)}"
+    style="--c:${c};--h:${h}px;--w:${w}px;--tx:${spineFg(c)}">
+    <i class="band t"></i><span class="spine-t">${esc(b.title)}</span><i class="band b"></i></button>`;
+}
+function slipHTML(l,searching){
+  const b=book(l.bookId),m=member(l.memberId);if(!b||!m)return'';
+  const od=daysOver(l.due)>0;
+  const hit=searching&&matchBook(b,ui.q);
+  return `<button class="slip${od?' od':''}${flash.loan===l.id?' pop':''}${searching?(hit?'':' dim'):''}" data-book="${b.id}" data-slip="${l.id}" title="${esc(b.title)} — with ${esc(m.name)}">
+    <span class="due-l">DUE</span><span class="due-d">${fmtDay(l.due)}</span><span class="who">${esc(initials(m.name))}</span>
+    ${od?`<span class="slip-stamp">OVERDUE</span>`:''}</button>`;
+}
+function ledgerHTML(){
+  const events=[];
+  state.loans.forEach(l=>{
+    events.push({t:l.out,k:'OUT',l});
+    if(l.returned)events.push({t:l.returned,k:'RET',l});
+  });
+  events.sort((a,b)=>b.t-a.t);
+  const rows=events.slice(0,7).map(e=>{
+    const b=book(e.l.bookId),m=member(e.l.memberId);if(!b||!m)return'';
+    let extra='';
+    if(e.k==='OUT')extra=`due ${fmtDay(e.l.due)}`;
+    else{const late=Math.max(0,dayDiff(e.l.returned,e.l.due));extra=late?`late ${late}d · <span class="fine">${money(late*FINE)}</span>`:'on time'}
+    return `<div class="lg-row"><span class="lg-d">${fmtDay(e.t)}</span><span class="lg-tx">${e.k==='OUT'?'Charged':'Returned'} — <b>${esc(b.title)}</b> · ${esc(m.name)} · ${extra}</span></div>`;
+  }).join('');
+  return `<section class="ledger"><div class="ledger-t">DESK LEDGER — RECENT TRANSACTIONS</div>${rows||'<div class="note">The desk has been quiet.</div>'}</section>`;
+}
+
+/* ============ borrowers ============ */
+function renderBorrowers(v){
+  v.classList.remove('searching');
+  const ms=[...state.members].sort((a,b)=>a.name.localeCompare(b.name));
+  const cards=ms.map(m=>{
+    const act=activeOf(m.id).sort((a,b)=>a.due-b.due);
+    const od=act.filter(l=>daysOver(l.due)>0);
+    const lines=act.slice(0,3).map(l=>{
+      const b=book(l.bookId);if(!b)return'';
+      const o=daysOver(l.due)>0;
+      return `<div class="${o?'odl':''}">· ${esc(b.title)} — due ${fmtDay(l.due)}${o?' ·OD':''}</div>`;
+    }).join('');
+    const more=act.length>3?`<div>+ ${act.length-3} more…</div>`:'';
+    return `<button class="icard${flash.member===m.id?' pop':''}" data-member="${m.id}">
+      <span class="ic-top">MERIDIAN FREE LIBRARY · BORROWER</span>
+      <span class="ic-name">${esc(m.name)}</span>
+      <span class="ic-no">${m.no} · ISSUED ${fmtDay(m.joined)}</span>
+      ${od.length?`<span class="stamp-mini">OVERDUE</span>`:`<span class="stamp-mini gr">GOOD</span>`}
+      <span class="ic-loans">${lines||'<div>· nothing charged at present</div>'}${more}</span>
+    </button>`;
+  }).join('');
+  v.innerHTML=`<div class="b-head"><div><div class="b-title">The card catalog</div><div class="b-sub">ONE CARD PER READER · LIMIT ${MAXBOOKS} TITLES · FINES ${money(FINE)}/DAY</div></div></div>
+    <div class="cards">${cards}<button class="icard icard-add" data-act="add-member">${ic('plus',18)}<span style="font:italic 400 17px var(--serif)">Register a reader</span></button></div>`;
+  flash.member=null;
+}
+
+/* ============ render root ============ */
+function renderView(){
+  const v=$('#view');
+  if(ui.tab==='stacks')renderStacks(v);else renderBorrowers(v);
+}
+function renderAll(){renderStats();renderTabs();renderView()}
+
+/* ============ drawer ============ */
+function openDrawer(html){
+  $('#dbody').innerHTML=html;
+  $('#drawer').classList.add('open');$('#scrim').classList.add('show');document.body.classList.add('lock');
+  $('#dbody').scrollTop=0;
+}
+function closeDrawer(){$('#drawer').classList.remove('open');$('#scrim').classList.remove('show');document.body.classList.remove('lock');dctx=null}
+function refreshDrawer(){
+  if(!dctx)return;
+  if(dctx.type==='book'&&book(dctx.id))drawerBook(dctx.id);
+  else if(dctx.type==='member'&&member(dctx.id))drawerMember(dctx.id);
+}
+const dHead=k=>`<div class="d-head"><span class="d-k">${k}</span><button class="icon-btn" data-act="close" aria-label="Close">${ic('x',16)}</button></div>`;
+
+/* ---- book drawer ---- */
+function drawerBook(id){
+  const b=book(id);if(!b)return;
+  dctx={type:'book',id};
+  if(lend.book!==id)lend={book:id,mid:null,days:LOAN_DAYS};
+  const holders=activeLoans(id).sort((a,b2)=>a.due-b2.due);
+  const inn=copiesIn(b);
+  const hist=state.loans.filter(l=>l.bookId===id&&l.returned).sort((a,b2)=>b2.returned-a.returned).slice(0,5);
+  const c=spineColor(b),fg=spineFg(c);
+  const holderRows=holders.map(l=>{
+    const m=member(l.memberId);if(!m)return'';
+    const od=daysOver(l.due);
+    return `<div class="holder">${initBlock(m,26)}
+      <span class="holder-main"><span class="holder-t">${esc(m.name)}</span>
+      <span class="holder-s">OUT ${fmtDay(l.out)} · DUE ${fmtDay(l.due)}${od?` · <span class="fine">+${money(od*FINE)}</span>`:''}</span></span>
+      <span class="holder-act">
+        <button class="btn gho sm" data-act="renew" data-loan="${l.id}" ${od||l.renewals>=2?'disabled title="Cannot renew"':''}>RENEW</button>
+        <button class="btn pri sm" data-act="return" data-loan="${l.id}">RETURN</button>
+      </span></div>`;
+  }).join('');
+  const lendSec=inn>0?`
+    <section class="sect"><div class="sect-t"><span>LEND A COPY</span><span>${inn} ON SHELF</span></div>
+      <div style="margin-top:8px">${state.members.length?memberPickList():'<div class="note">No readers registered yet — add one from the Borrowers tab.</div>'}</div>
+      ${state.members.length?`
+      <div class="due-row"><span class="lab">LOAN</span>${[7,14,21,28].map(n=>`<button class="dur${lend.days===n?' on':''}" data-act="lend-days" data-days="${n}">${n}D</button>`).join('')}</div>
+      <div class="due-preview">Due back <b>${fmtDate(Date.now()+lend.days*DAY)}</b></div>
+      <button class="btn pri wide" data-act="lend-go" style="margin-top:14px">${ic('check',13)}STAMP &amp; CHARGE</button>`:''}
+    </section>`
+    :`<section class="sect"><div class="sect-t"><span>LEND A COPY</span></div><div class="note">All ${b.copies} cop${b.copies>1?'ies are':'y is'} out with readers.</div></section>`;
+  openDrawer(dHead('ACCESSION · '+b.acc)+`<div class="d-body">
+    <div class="jacket" style="background:${c};color:${fg}"><div class="jt">${esc(b.title)}</div><div class="ja">${esc(b.author)}</div></div>
+    <dl>
+      <div class="mrow"><dt>PUBLISHER</dt><dd>${esc(b.publisher||'—')}${b.year?' · '+b.year:''}</dd></div>
+      <div class="mrow"><dt>SHELF MARK</dt><dd class="mono">${esc(b.shelf)}</dd></div>
+      <div class="mrow"><dt>COPIES</dt><dd>${inn} in · ${holders.length} out · ${b.copies} held</dd></div>
+      <div class="mrow"><dt>ACCESSIONED</dt><dd>${fmtDate(b.added)}</dd></div>
+      <div class="mrow"><dt>STATUS</dt><dd class="${inn?'good':'bad'}">${inn?'Available':'All copies out'}</dd></div>
+    </dl>
+    <section class="sect"><div class="sect-t"><span>ON LOAN</span><span>${holders.length} OF ${b.copies}</span></div>
+      ${holderRows||'<div class="note">No copies are charged out.</div>'}</section>
+    ${lendSec}
+    ${hist.length?`<section class="sect"><div class="sect-t"><span>PREVIOUS LOANS</span></div><div class="hist">${hist.map(l=>{
+      const m=member(l.memberId);if(!m)return'';const late=Math.max(0,dayDiff(l.returned,l.due));
+      return `<div><span>${esc(m.name)}</span><span>RET ${fmtDay(l.returned)}${late?` · LATE ${late}D`:''}</span></div>`}).join('')}</div></section>`:''}
+    <div class="d-actions">
+      <button class="btn gho" data-act="edit-book" data-id="${b.id}">${ic('pen',13)}EDIT</button>
+      <button class="btn ox" data-act="retire" data-id="${b.id}" data-arm><span class="arm-label">${ic('trash',13)}RETIRE</span></button>
+    </div>
+  </div>`);
+}
+function memberPickList(){
+  const ms=[...state.members].sort((a,b)=>a.name.localeCompare(b.name));
+  return ms.map(m=>{
+    const n=activeOf(m.id).length, full=n>=MAXBOOKS;
+    return `<button class="mpick${lend.mid===m.id?' sel':''}" data-act="lend-pick" data-mid="${m.id}" ${full?'disabled':''}>
+      ${initBlock(m,28)}
+      <span class="mpick-main"><span class="mpick-t">${esc(m.name)}</span><span class="mpick-s">${m.no}</span></span>
+      ${full?'<span class="cnt">AT LIMIT</span>':`<span class="cnt">${n}/${MAXBOOKS}</span>`}
+      <span class="tick">${ic('check',14)}</span></button>`;
+  }).join('');
+}
+
+/* ---- member drawer ---- */
+function drawerMember(id){
+  const m=member(id);if(!m)return;
+  dctx={type:'member',id};
+  if(charge.mid!==id)charge={mid:id,q:'',bid:null,days:LOAN_DAYS};
+  const act=activeOf(id).sort((a,b)=>a.due-b.due);
+  const od=act.filter(l=>daysOver(l.due)>0);
+  const fines=od.reduce((a,l)=>a+daysOver(l.due)*FINE,0);
+  const hist=state.loans.filter(l=>l.memberId===id&&l.returned).sort((a,b)=>b.returned-a.returned).slice(0,4);
+  const loanRows=act.map(l=>{
+    const b=book(l.bookId);if(!b)return'';
+    const o=daysOver(l.due);
+    return `<div class="holder">${miniSpine(b)}
+      <span class="holder-main"><span class="holder-t">${esc(b.title)}</span>
+      <span class="holder-s">OUT ${fmtDay(l.out)} · DUE ${fmtDay(l.due)}${o?` · <span class="fine">+${money(o*FINE)}</span>`:''}</span></span>
+      <span class="holder-act">
+        <button class="btn gho sm" data-act="renew" data-loan="${l.id}" ${o||l.renewals>=2?'disabled':''}>RENEW</button>
+        <button class="btn pri sm" data-act="return" data-loan="${l.id}">RETURN</button>
+      </span></div>`;
+  }).join('');
+  const avail=state.books.filter(b=>copiesIn(b)>0);
+  const q=charge.q.trim().toLowerCase();
+  const list=avail.filter(b=>!q||(b.title+' '+b.author).toLowerCase().includes(q)).slice(0,8);
+  const chargeSec=`
+    <section class="sect"><div class="sect-t"><span>CHARGE A TITLE</span></div>
+      <div style="margin-top:10px"><input class="field" id="chargeQ" placeholder="Search available titles…" autocomplete="off"
+        style="width:100%;background:transparent;border:0;border-bottom:1px solid var(--line2);padding:7px 2px;outline:none"></div>
+      <div class="pick-list" id="chargeList">${chargeListHTML(list)}</div>
+      ${charge.bid?confirmStrip():''}
+    </section>`;
+  openDrawer(dHead('MEMBER CARD · '+m.no)+`<div class="d-body">
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px">${initBlock(m,48)}
+      <div style="min-width:0"><div style="font:400 26px/1.1 var(--serif)">${esc(m.name)}</div>
+      <div style="font:700 9px var(--type);letter-spacing:.14em;color:var(--ink2);margin-top:4px">${m.no}${m.email?' · '+esc(m.email):''}</div></div></div>
+    <dl>
+      <div class="mrow"><dt>OUT NOW</dt><dd>${act.length} OF ${MAXBOOKS}</dd></div>
+      <div class="mrow"><dt>LIFETIME LOANS</dt><dd>${state.loans.filter(l=>l.memberId===id).length}</dd></div>
+      <div class="mrow"><dt>FINES DUE</dt><dd class="${fines?'bad':'good'}">${money(fines)}</dd></div>
+      <div class="mrow"><dt>MEMBER SINCE</dt><dd>${fmtDate(m.joined)}</dd></div>
+    </dl>
+    <section class="sect"><div class="sect-t"><span>CHARGED TITLES</span><span>${act.length}</span></div>
+      ${loanRows||'<div class="note">Nothing charged at present.</div>'}</section>
+    ${chargeSec}
+    ${hist.length?`<section class="sect"><div class="sect-t"><span>RECENT HISTORY</span></div><div class="hist">${hist.map(l=>{
+      const b=book(l.bookId);if(!b)return'';const late=Math.max(0,dayDiff(l.returned,l.due));
+      return `<div><span>${esc(b.title)}</span><span>RET ${fmtDay(l.returned)}${late?` · LATE ${late}D`:''}</span></div>`}).join('')}</div></section>`:''}
+    <div class="d-actions">
+      <button class="btn ox" data-act="remove-member" data-id="${m.id}" data-arm><span class="arm-label">${ic('trash',13)}REMOVE MEMBER</span></button>
+    </div>
+  </div>`);
+  const qi=$('#chargeQ');qi.value=charge.q;
+  qi.addEventListener('input',()=>{charge.q=qi.value;
+    const qq=charge.q.trim().toLowerCase();
+    $('#chargeList').innerHTML=chargeListHTML(avail.filter(b=>!qq||(b.title+' '+b.author).toLowerCase().includes(qq)).slice(0,8));
+  });
+}
+function chargeListHTML(list){
+  if(!list.length)return '<div class="note">Nothing available matches.</div>';
+  return list.map(b=>`<button class="crow${charge.bid===b.id?' sel':''}" data-act="charge-pick" data-bid="${b.id}">
+    ${miniSpine(b)}<span class="crow-main"><span class="crow-t">${esc(b.title)}</span><span class="crow-s">${esc(b.author)} · ${esc(b.shelf)}</span></span>
+    <span class="cnt">${copiesIn(b)} IN</span></button>`).join('');
+}
+function confirmStrip(){
+  const b=book(charge.bid),m=member(charge.mid);if(!b||!m)return'';
+  return `<div class="confirm-strip">
+    <div class="cs-row">${miniSpine(b)}<span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(b.title)}</span></div>
+    <div class="cs-row" style="margin-top:5px;font:400 12px var(--sans);color:var(--ink2)">→ to <b>&nbsp;${esc(m.name)}</b></div>
+    <div class="due-row"><span class="lab">LOAN</span>${[7,14,21,28].map(n=>`<button class="dur${charge.days===n?' on':''}" data-act="charge-days" data-days="${n}">${n}D</button>`).join('')}</div>
+    <div class="due-preview">Due back <b>${fmtDate(Date.now()+charge.days*DAY)}</b></div>
+    <button class="btn pri wide" data-act="charge-go" style="margin-top:12px">${ic('check',13)}STAMP &amp; CHARGE</button>
+    <button class="btn gho wide" data-act="charge-clear" style="margin-top:8px;border-color:transparent">Choose another</button>
+  </div>`;
+}
+
+/* ---- forms ---- */
+function bookFormHTML(b){
+  const subs=[...new Set(['Fiction','Science','History','Philosophy','Art','Design','Reference','Memoir','Architecture','Poetry','Nature',...state.books.map(x=>x.subject)])];
+  const acc=b?b.acc:pad(state.seq.book);
+  return dHead((b?'AMEND · ':'NEW ACCESSION · ')+acc)+`<div class="d-body">
+    <div style="font:italic 400 24px var(--serif)">${b?'Amend the record':'Accession a new title'}</div>
+    <div class="form-note" style="margin-top:6px">${b?'CHANGES TAKE EFFECT AT ONCE':'IT WILL ENTER THE STACKS AS № '+acc}</div>
+    <form id="bookForm" class="form">
+      <div class="field"><label>TITLE *</label><input name="title" value="${esc(b&&b.title||'')}" placeholder="e.g. The Rings of Saturn"></div>
+      <div class="field"><label>AUTHOR *</label><input name="author" value="${esc(b&&b.author||'')}" placeholder="e.g. W. G. Sebald"></div>
+      <div class="f3">
+        <div class="field"><label>SUBJECT</label><select name="subject">${subs.map(s=>`<option${b&&b.subject===s?' selected':''}>${esc(s)}</option>`).join('')}</select></div>
+        <div class="field"><label>YEAR</label><input name="year" type="number" min="0" max="2100" value="${b&&b.year||''}"></div>
+        <div class="field"><label>COPIES</label><input name="copies" type="number" min="1" max="9" value="${b?b.copies:1}"></div>
+      </div>
+      <div class="field"><label>PUBLISHER</label><input name="publisher" value="${esc(b&&b.publisher||'')}" placeholder="Optional"></div>
+      <button class="btn pri wide" type="submit">${b?'SAVE CHANGES':'PLACE ON THE SHELVES'}</button>
+    </form></div>`;
+}
+function openAddBook(){dctx={type:'form'};openDrawer(bookFormHTML(null));
+  $('#bookForm').addEventListener('submit',e=>{
+    e.preventDefault();const f=e.target;
+    const title=f.title.value.trim(),author=f.author.value.trim();
+    if(!title||!author)return toast({title:'Missing details',desc:'A title and an author are both required.',type:'ox'});
+    const subject=f.subject.value;
+    const pre={Fiction:'F',Science:'S',History:'H',Philosophy:'P',Art:'A',Design:'D',Reference:'R',Memoir:'M',Architecture:'AR',Poetry:'PO',Nature:'N'}[subject]||'X';
+    const sur=(author.split(/\s+/).pop()||'XXX').replace(/[^A-Za-z]/g,'').slice(0,3).toUpperCase()||'XXX';
+    const nb={id:'b'+Date.now(),acc:pad(state.seq.book++),title,author,subject,publisher:f.publisher.value.trim(),
+      year:f.year.value?+f.year.value:'',copies:Math.max(1,Math.min(9,+f.copies.value||1)),shelf:pre+'-'+sur,added:Date.now()};
+    state.books.push(nb);save();flash.book=nb.id;ui.tab='stacks';closeDrawer();renderAll();
+    toast({title:'Accessioned',desc:`“${title}” placed on the ${subject} shelves as № ${nb.acc}`,type:'gr'});
+  });
+}
+function openEditBook(id){
+  const b=book(id);if(!b)return;dctx={type:'form'};
+  openDrawer(bookFormHTML(b));
+  $('#bookForm').addEventListener('submit',e=>{
+    e.preventDefault();const f=e.target;
+    const title=f.title.value.trim(),author=f.author.value.trim();
+    if(!title||!author)return toast({title:'Missing details',desc:'A title and an author are both required.',type:'ox'});
+    const out=activeLoans(b.id).length, copies=Math.max(1,Math.min(9,+f.copies.value||1));
+    if(copies<out)return toast({title:'Cannot reduce copies',desc:`${out} cop${out>1?'ies are':'y is'} charged out — hold at least ${out}.`,type:'ox'});
+    Object.assign(b,{title,author,subject:f.subject.value,publisher:f.publisher.value.trim(),year:f.year.value?+f.year.value:'',copies});
+    save();closeDrawer();renderAll();toast({title:'Record amended',desc:title,type:'gr'});
+  });
+}
+function openAddMember(){dctx={type:'form'};
+  const no='M-'+pad(state.seq.member,4);
+  openDrawer(dHead('NEW MEMBER · '+no)+`<div class="d-body">
+    <div style="font:italic 400 24px var(--serif)">Register a reader</div>
+    <div class="form-note" style="margin-top:6px">A CARD WILL BE ISSUED AS ${no}</div>
+    <form id="memForm" class="form">
+      <div class="field"><label>FULL NAME *</label><input name="name" placeholder="e.g. Iris Murdoch"></div>
+      <div class="field"><label>EMAIL</label><input name="email" type="email" placeholder="Optional"></div>
+      <button class="btn pri wide" type="submit">ISSUE CARD</button>
+    </form></div>`);
+  $('#memForm').addEventListener('submit',e=>{
+    e.preventDefault();
+    const name=e.target.name.value.trim(),email=e.target.email.value.trim();
+    if(!name)return toast({title:'Missing name',desc:'A reader needs a name for the register.',type:'ox'});
+    const nm={id:'m'+Date.now(),no:'M-'+pad(state.seq.member++,4),name,email,joined:Date.now()};
+    state.members.push(nm);save();flash.member=nm.id;ui.tab='borrowers';closeDrawer();renderAll();
+    toast({title:'Card issued',desc:`${name} may now borrow up to ${MAXBOOKS} titles`,type:'gr'});
+  });
+}
+
+/* ============ actions ============ */
+function doLend(bid,mid,days,closeAfter){
+  const b=book(bid),m=member(mid);if(!b||!m)return false;
+  if(copiesIn(b)<1)return toast({title:'No copies on the shelf',desc:`“${b.title}” is fully charged out.`,type:'ox'}),false;
+  if(activeOf(m.id).length>=MAXBOOKS)return toast({title:'Desk limit reached',desc:`${m.name} already has ${MAXBOOKS} titles charged out.`,type:'ox'}),false;
+  const loan={id:'l'+Date.now()+Math.floor(Math.random()*99),bookId:bid,memberId:mid,out:Date.now(),due:Date.now()+days*DAY,returned:null,renewals:0};
+  state.loans.push(loan);save();flash.loan=loan.id;
+  if(closeAfter)closeDrawer();
+  renderAll();refreshDrawer();
+  toast({title:`“${b.title}” charged out`,desc:`${m.name} · due ${fmtDate(loan.due)}`,type:'gr',
+    undo:()=>{state.loans=state.loans.filter(x=>x.id!==loan.id);save();renderAll();refreshDrawer()}});
+  return true;
+}
+function doReturn(lid){
+  const l=state.loans.find(x=>x.id===lid);if(!l||l.returned)return;
+  const b=book(l.bookId),m=member(l.memberId);if(!b||!m)return;
+  const od=daysOver(l.due);l.returned=Date.now();save();
+  renderAll();refreshDrawer();
+  toast({title:`“${b.title}” returned`,desc:od?`${m.name} · ${od}d late · fine ${money(od*FINE)}`:`${m.name} · back on the shelf on time`,type:od?'ox':'gr',
+    undo:()=>{l.returned=null;save();renderAll();refreshDrawer()}});
+}
+function doRenew(lid){
+  const l=state.loans.find(x=>x.id===lid);if(!l||l.returned)return;
+  if(daysOver(l.due)>0)return toast({title:'Cannot renew',desc:'This loan is overdue — return it instead.',type:'ox'});
+  if(l.renewals>=2)return toast({title:'Renewal limit reached',desc:'Two renewals per loan, no more.',type:'ox'});
+  l.due+=LOAN_DAYS*DAY;l.renewals++;save();renderAll();refreshDrawer();
+  toast({title:'Loan renewed',desc:'New due date '+fmtDate(l.due),type:'gr'});
+}
+function armBtn(btn){
+  btn.classList.add('armed');
+  const lbl=btn.querySelector('.arm-label');
+  if(lbl&&!lbl.dataset.orig){lbl.dataset.orig=lbl.innerHTML;lbl.textContent='SURE?'}
+  btn._t=setTimeout(()=>{btn.classList.remove('armed');if(lbl&&lbl.dataset.orig)lbl.innerHTML=lbl.dataset.orig},2600);
+}
+function handleAct(btn){
+  const a=btn.dataset.act;
+  switch(a){
+    case'tab':ui.tab=btn.dataset.sub;ui.q='';$('#q').value='';closeDrawer();renderAll();break;
+    case'close':closeDrawer();break;
+    case'add-book':openAddBook();break;
+    case'edit-book':openEditBook(btn.dataset.id);break;
+    case'add-member':openAddMember();break;
+    case'lend-pick':lend.mid=btn.dataset.mid;drawerBook(lend.book);break;
+    case'lend-days':lend.days=+btn.dataset.days;drawerBook(lend.book);break;
+    case'lend-go':doLend(lend.book,lend.mid,lend.days,true);break;
+    case'charge-pick':charge.bid=btn.dataset.bid;drawerMember(charge.mid);break;
+    case'charge-days':charge.days=+btn.dataset.days;drawerMember(charge.mid);break;
+    case'charge-clear':charge.bid=null;drawerMember(charge.mid);break;
+    case'charge-go':doLend(charge.bid,charge.mid,charge.days,false);break;
+    case'return':doReturn(btn.dataset.loan);break;
+    case'renew':doRenew(btn.dataset.loan);break;
+    case'retire':{
+      const b=book(btn.dataset.id);if(!b)break;
+      if(activeLoans(b.id).length)return toast({title:'Cannot retire',desc:`“${b.title}” still has copies charged out.`,type:'ox'});
+      state.books=state.books.filter(x=>x.id!==b.id);save();closeDrawer();renderAll();
+      toast({title:'Title retired',desc:`“${b.title}” has left the stacks`,type:'gr'});break}
+    case'remove-member':{
+      const m=member(btn.dataset.id);if(!m)break;
+      if(activeOf(m.id).length)return toast({title:'Cannot remove',desc:`${m.name} still has titles charged out.`,type:'ox'});
+      state.members=state.members.filter(x=>x.id!==m.id);save();closeDrawer();renderAll();
+      toast({title:'Member removed',desc:`${m.name} is struck from the catalog`,type:'gr'});break}
+    case'reset':
+      localStorage.removeItem(LS);state=seed();ui.q='';$('#q').value='';ui.tab='stacks';
+      closeDrawer();renderAll();toast({title:'Shelves reset',desc:'The seeded library is back in place',type:'gr'});break;
+  }
+}
+
+/* ============ wiring ============ */
+document.addEventListener('click',e=>{
+  const closer=e.target.closest('[data-act]');
+  if(!closer){
+    const bk=e.target.closest('[data-book]');if(bk){drawerBook(bk.dataset.book);return}
+    const mb=e.target.closest('[data-member]');if(mb){drawerMember(mb.dataset.member);return}
+    if(e.target.id==='scrim')closeDrawer();
+    return;
+  }
+  if(closer.dataset.arm!==undefined&&!closer.classList.contains('armed')){armBtn(closer);return}
+  handleAct(closer);
+});
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape')closeDrawer();
+  else if(e.key==='/'&&!/^(INPUT|SELECT|TEXTAREA)$/.test(document.activeElement.tagName)){e.preventDefault();$('#q').focus()}
+});
+ $('#q').addEventListener('input',e=>{ui.q=e.target.value;if(ui.tab!=='stacks'){ui.tab='stacks';renderTabs()}renderView()});
+let rz;window.addEventListener('resize',()=>{clearTimeout(rz);rz=setTimeout(()=>{
+  document.querySelectorAll('.shelf-scroll').forEach(el=>el.classList.toggle('fade',el.scrollWidth>el.clientWidth+8))},160)});
+
+/* ============ boot ============ */
+renderAll();
+setTimeout(()=>toast({title:'The desk is open',desc:`${totalCopies()} copies on the shelves · ${activeAll().length} out with readers · press / to search`,type:'gr',dur:6000}),500);
+</script>
+</body>
+</html>
